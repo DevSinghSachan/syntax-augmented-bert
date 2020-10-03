@@ -271,18 +271,42 @@ class Pooler(nn.Module):
         in_hidden_size = config.hidden_size
         if config.syntax['use_subj_obj']:
             in_hidden_size *= 3
-        self.mlp = nn.Linear(in_hidden_size, config.hidden_size)
-        self.activation = nn.Tanh()
+
         self.pool_type = self.config.syntax['pooling']
 
-    def forward(self, hidden_states, pool_mask=None, subj_mask=None, obj_mask=None):
-        h_out = pool(hidden_states, pool_mask, type=self.pool_type)
+        # output MLP layers
+        layers = [nn.Linear(in_hidden_size,
+                            config.hidden_size),
+                  nn.Tanh()]
+        for _ in range(config.syntax['mlp_layers'] - 1):
+            layers += [nn.Linear(config.hidden_size,
+                                 config.hidden_size),
+                       nn.Tanh()]
+        self.out_mlp = nn.Sequential(*layers)
+
+    def forward(self, hidden_states, token_mask=None,
+                subj_pos=None, obj_pos=None):
+
+        pool_mask = token_mask.eq(0).unsqueeze(2)
+        h_out = pool(hidden_states,
+                     pool_mask,
+                     type=self.pool_type)
+
         if self.config.syntax['use_subj_obj']:
-            subj_out = pool(hidden_states, subj_mask, type=self.pool_type)
-            obj_out = pool(hidden_states, obj_mask, type=self.pool_type)
-            h_out = torch.cat([h_out, subj_out, obj_out], dim=1)
-        pooled_output = self.mlp(h_out)
-        pooled_output = self.activation(pooled_output)
+            subj_mask = subj_pos.eq(0).eq(0).unsqueeze(2)
+            subj_out = pool(hidden_states,
+                            subj_mask,
+                            type=self.pool_type)
+
+            obj_mask = obj_pos.eq(0).eq(0).unsqueeze(2)
+            obj_out = pool(hidden_states,
+                           obj_mask,
+                           type=self.pool_type)
+
+            h_out = torch.cat([h_out, subj_out, obj_out],
+                              dim=1)
+
+        pooled_output = self.out_mlp(h_out)
         return pooled_output
 
 
@@ -303,7 +327,7 @@ class BertModel(BertPreTrainedModel):
                                                       new_num_tokens)
         self.embeddings.word_embeddings = new_embeddings
 
-        if self.config.model_type not in {"bert_baseline"}:
+        if self.config.model_type not in {'bert_baseline', 'late_fusion'}:
             # Resizing token embeddings of the syntax-encoder
             self.syntax_encoder.resize_token_embeddings(new_num_tokens)
         return self.embeddings.word_embeddings
@@ -369,14 +393,12 @@ class BertModel(BertPreTrainedModel):
         self_attention_mask = self.postprocess_attention_mask(self_attention_mask)
 
         if self.config.model_type == "joint_fusion":
-            _, syntax_enc_outputs = self.syntax_encoder(input_ids,
-                                                        adj_matrix,
-                                                        dep_rel_matrix,
-                                                        wp_rows,
-                                                        align_sizes,
-                                                        seq_len,
-                                                        subj_pos,
-                                                        obj_pos)
+            syntax_enc_outputs = self.syntax_encoder(input_ids,
+                                                     adj_matrix,
+                                                     dep_rel_matrix,
+                                                     wp_rows,
+                                                     align_sizes,
+                                                     seq_len)
         else:
             syntax_enc_outputs = None
 
@@ -390,23 +412,20 @@ class BertModel(BertPreTrainedModel):
         sequence_output = encoder_outputs[0]
 
         if self.config.model_type == "late_fusion":
-            pooled_output, sequence_output = self.syntax_encoder(sequence_output,
-                                                                 adj_matrix,
-                                                                 dep_rel_matrix,
-                                                                 wp_rows,
-                                                                 align_sizes,
-                                                                 seq_len,
-                                                                 subj_pos,
-                                                                 obj_pos)
-        else:
-            # TODO: For token-level tasks like SRL or NER, pooled output doesn't matter but for sequence-level tasks
-            # TODO: like Relation Extraction, it is important. Fix this hack so that the code works without
-            # TODO: modification for both token-level and sequence-level tasks.
-            pooled_output = None
-            # pooled_output = self.pooler(sequence_output,
-            #                             self.syntax_encoder.pool_mask,
-            #                             self.syntax_encoder.subj_mask,
-            #                             self.syntax_encoder.obj_mask)
+            sequence_output = self.syntax_encoder(sequence_output,
+                                                  adj_matrix,
+                                                  dep_rel_matrix,
+                                                  wp_rows,
+                                                  align_sizes,
+                                                  seq_len)
+
+        # TODO: For token-level tasks like SRL or NER, pooled output doesn't matter but for sequence-level tasks
+        # TODO: like Relation Extraction, it is important. Fix this hack so that the code works without
+        # TODO: modification for both token-level and sequence-level tasks.
+        pooled_output = self.pooler(sequence_output,
+                                    wp_token_mask,
+                                    subj_pos,
+                                    obj_pos)
         # to linguistic space
         sequence_output = GNNRelationModel.to_linguistic_space(sequence_output,
                                                                wp_rows,
