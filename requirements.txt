@@ -1,0 +1,10 @@
+tqdm==4.47.0
+jsonlines
+torch
+numpy
+pytorch_transformers==1.2.0
+torchcontrib
+scipy
+scikit-learn
+typing
+tensorboardX
