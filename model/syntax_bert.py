@@ -371,6 +371,23 @@ class BertModel(BertPreTrainedModel):
         mask = (1.0 - mask) * -10000.0
         return mask
 
+    @classmethod
+    def to_linguistic_space(cls, wp_tensor, wp_rows, align_sizes, wp_seq_lengths):
+        device = wp_tensor.get_device()
+        new_tensor = []
+        for i, (seq_len, size) in enumerate(zip(wp_seq_lengths, align_sizes)):
+            wp_weighted = wp_tensor[i, :seq_len] / torch.FloatTensor(size).to(device).unsqueeze(1)
+            new_row = []
+            for j, word_piece_slice in enumerate(wp_rows[i]):
+                tensor = torch.sum(wp_weighted[word_piece_slice],
+                                   dim=0, keepdim=True)
+                new_row.append(tensor)
+            new_row = torch.cat(new_row)
+            new_tensor.append(new_row)
+        new_tensor = nn.utils.rnn.pad_sequence(new_tensor,
+                                               batch_first=True)
+        return new_tensor
+
     def forward(self, input_ids, token_type_ids=None,
                 wp_token_mask=None, dep_head=None,
                 dep_rel=None, wp_rows=None, align_sizes=None, seq_len=None,
@@ -427,10 +444,10 @@ class BertModel(BertPreTrainedModel):
                                     subj_pos,
                                     obj_pos)
         # to linguistic space
-        sequence_output = GNNRelationModel.to_linguistic_space(sequence_output,
-                                                               wp_rows,
-                                                               align_sizes,
-                                                               seq_len)
+        sequence_output = self.to_linguistic_space(sequence_output,
+                                                   wp_rows,
+                                                   align_sizes,
+                                                   seq_len)
         outputs = (sequence_output, pooled_output)
         return outputs
 

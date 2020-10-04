@@ -8,7 +8,7 @@ import numpy as np
 import scipy.stats as stats
 from pytorch_transformers import modeling_bert
 
-from model.gate import HighwayGateLayer, GruGateLayer, SigmoidTanhGateLayer
+from model.gate import HighwayGateLayer
 from utils import constant
 
 
@@ -96,8 +96,6 @@ class GNNClassifier(nn.Module):
                                                              attention_mask,
                                                              dep_head,
                                                              dep_rel,
-                                                             wp_rows,
-                                                             align_sizes,
                                                              seq_len)
         logits = self.classifier(pooled_output)
         return logits
@@ -203,25 +201,8 @@ class GNNRelationModel(nn.Module):
                                                           batch_first=True)
         return rnn_outputs
 
-    @classmethod
-    def to_linguistic_space(cls, wp_tensor, wp_rows, align_sizes, wp_seq_lengths):
-        device = wp_tensor.get_device()
-        new_tensor = []
-        for i, (seq_len, size) in enumerate(zip(wp_seq_lengths, align_sizes)):
-            wp_weighted = wp_tensor[i, :seq_len] / torch.FloatTensor(size).to(device).unsqueeze(1)
-            new_row = []
-            for j, word_piece_slice in enumerate(wp_rows[i]):
-                tensor = torch.sum(wp_weighted[word_piece_slice],
-                                   dim=0, keepdim=True)
-                new_row.append(tensor)
-            new_row = torch.cat(new_row)
-            new_tensor.append(new_row)
-        new_tensor = nn.utils.rnn.pad_sequence(new_tensor,
-                                               batch_first=True)
-        return new_tensor
-
     def forward(self, input_ids_or_bert_hidden, adj=None, dep_rel_matrix=None,
-                wp_rows=None, align_sizes=None, wp_seq_lengths=None):
+                wp_seq_lengths=None):
 
         if self.config.model_type == 'late_fusion':
             if self.config.syntax['finetune_bert']:
@@ -245,13 +226,7 @@ class GNNRelationModel(nn.Module):
             if self.config.syntax['contextual_rnn']:
                 embeddings = self.rnn_dropout(self.encode_with_rnn(embeddings,
                                                                    wp_seq_lengths))
-        if self.config.emb_wp_to_linguistic_mapping:
-            syntax_inputs = self.to_linguistic_space(embeddings,
-                                                     wp_rows,
-                                                     align_sizes,
-                                                     wp_seq_lengths)
-        else:
-            syntax_inputs = embeddings
+        syntax_inputs = embeddings
 
         dep_rel_emb = None
         if self.config.syntax['use_dep_rel']:
