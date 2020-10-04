@@ -33,6 +33,12 @@ python main.py --model_type bert  --model_name_or_path ${CACHE_MODEL_PATH}/bert-
 Download the dataset from here: https://drive.google.com/file/d/1oYK3uskhyrea24KwugXR-56YGlX7mDJC/view?usp=sharing
 
 
-### TODO
-1. (done) Rename the models "m1" to Late Fusion and "m3" to Joint Fusion
-2. (done) Delete the implementation of the model "m2"
+### Steps
+1. Download BERT/RoBERTa model weights from Huggingface by running the command
+```
+bash download_bert_model.sh
+```
+This script will create a directory "*hf-bert-weights*" and download the weights of four models. 
+Warning: The size of the directory would
+
+2. Create a virtualenv named `pyt` 
