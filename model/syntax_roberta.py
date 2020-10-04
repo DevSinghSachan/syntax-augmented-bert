@@ -247,7 +247,7 @@ class SyntaxRobertaForTokenClassification(BertPreTrainedModel):
             preds = torch.LongTensor(preds)
         else:
             # This attention mask acts as if the word tokens are in the linguistic space
-            attn_mask = [torch.LongTensor([1] * len(row)).to(logits.get_device()) for row in wp_rows]
+            attn_mask = [torch.LongTensor([1] * len(row)).to(logits.device) for row in wp_rows]
             attn_mask = nn.utils.rnn.pad_sequence(attn_mask,
                                                   batch_first=True)
             attn_mask = attn_mask.view(-1) == 1

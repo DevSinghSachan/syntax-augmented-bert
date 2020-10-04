@@ -373,7 +373,7 @@ class BertModel(BertPreTrainedModel):
 
     @classmethod
     def to_linguistic_space(cls, wp_tensor, wp_rows, align_sizes, wp_seq_lengths):
-        device = wp_tensor.get_device()
+        device = wp_tensor.device
         new_tensor = []
         for i, (seq_len, size) in enumerate(zip(wp_seq_lengths, align_sizes)):
             wp_weighted = wp_tensor[i, :seq_len] / torch.FloatTensor(size).to(device).unsqueeze(1)
@@ -404,7 +404,7 @@ class BertModel(BertPreTrainedModel):
                                                                   subj_pos,
                                                                   obj_pos,
                                                                   dep_rel,
-                                                                  input_ids.get_device())
+                                                                  input_ids.device)
 
         self_attention_mask = wp_token_mask[:, None, None, :]
         self_attention_mask = self.postprocess_attention_mask(self_attention_mask)
@@ -413,8 +413,6 @@ class BertModel(BertPreTrainedModel):
             syntax_enc_outputs = self.syntax_encoder(input_ids,
                                                      adj_matrix,
                                                      dep_rel_matrix,
-                                                     wp_rows,
-                                                     align_sizes,
                                                      seq_len)
         else:
             syntax_enc_outputs = None
@@ -432,8 +430,6 @@ class BertModel(BertPreTrainedModel):
             sequence_output = self.syntax_encoder(sequence_output,
                                                   adj_matrix,
                                                   dep_rel_matrix,
-                                                  wp_rows,
-                                                  align_sizes,
                                                   seq_len)
 
         # TODO: For token-level tasks like SRL or NER, pooled output doesn't matter but for sequence-level tasks
@@ -548,7 +544,7 @@ class SyntaxBertForTokenClassification(BertPreTrainedModel):
             preds = torch.LongTensor(preds)
         else:
             # This attention mask acts as if the word tokens are in the linguistic space
-            attn_mask = [torch.LongTensor([1]*len(row)).to(logits.get_device()) for row in wp_rows]
+            attn_mask = [torch.LongTensor([1]*len(row)).to(logits.device) for row in wp_rows]
             attn_mask = nn.utils.rnn.pad_sequence(attn_mask,
                                                   batch_first=True)
             attn_mask = attn_mask.view(-1) == 1

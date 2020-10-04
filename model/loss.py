@@ -22,7 +22,7 @@ class LabelSmoothingLoss(nn.Module):
         output (FloatTensor): batch_size x n_classes
         target (LongTensor): batch_size
         """
-        self.one_hot = self.one_hot.to(output.get_device())
+        self.one_hot = self.one_hot.to(output.device)
         model_prob = self.one_hot.repeat(target.size(0), 1)
         model_prob.scatter_(1, target.unsqueeze(1), self.confidence)
         return F.kl_div(F.log_softmax(output), model_prob, reduction='batchmean')

@@ -86,7 +86,7 @@ class CRF(nn.Module):
                 pass
 
     def _forward_alg_batch(self, feats_batch, sequence_lengths):
-        device = feats_batch.get_device()
+        device = feats_batch.device
         batch_size = len(feats_batch)
         feats_transpose = torch.transpose(feats_batch, 0, 1).contiguous()
         max_length = len(feats_transpose)
@@ -128,7 +128,7 @@ class CRF(nn.Module):
         return temp.view(-1, 1)
 
     def _score_sentence_batch(self, feats_batch, tags_batch, sequence_lengths):
-        binary_mask = self._sequence_mask(sequence_lengths)
+        binary_mask = self._sequence_mask(sequence_lengths, device=feats_batch.device)
 
         unary_score = self._emission_potential_score(feats_batch, tags_batch)
         unary_score = torch.masked_select(unary_score, binary_mask)
@@ -139,11 +139,11 @@ class CRF(nn.Module):
         score = unary_score + binary_score
         return score
 
-    def _sequence_mask(self, seq_len):
+    def _sequence_mask(self, seq_len, device):
         max_len = max(seq_len)
         batch_size = len(seq_len)
-        seq_len_tensor = Variable(torch.FloatTensor(seq_len)).cuda()
-        range_row = Variable(torch.arange(0, max_len).view(1, -1).expand(batch_size, max_len)).cuda()
+        seq_len_tensor = Variable(torch.FloatTensor(seq_len)).to(device)
+        range_row = Variable(torch.arange(0, max_len).view(1, -1).expand(batch_size, max_len)).to(device)
         lengths = seq_len_tensor.view(-1, 1).expand(batch_size, max_len)
         binary_mask = torch.lt(range_row, lengths).view(-1, 1)
         return binary_mask.bool()
@@ -157,7 +157,7 @@ class CRF(nn.Module):
 
     # Computes the binary potential score
     def _transition_potential_score(self, tags_batch):
-        device = tags_batch.get_device()
+        device = tags_batch.device
         batch_size = len(tags_batch)
         max_len = tags_batch.size()[1]
         dummy_start = Variable(torch.LongTensor([0] * batch_size).view(batch_size, 1)).to(device)
