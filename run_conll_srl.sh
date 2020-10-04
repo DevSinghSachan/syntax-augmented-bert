@@ -15,28 +15,27 @@ export DATASET_NAME='conll2005_srl_udv2'
 export SEED=40
 export SYNTAX_MODEL_TYPE="joint_fusion"
 export model='bert-base-cased'
-export SCRATCH='/network/tmp1/sachande'
 export BERT_WEIGHTS='hf-bert-weights'
 
 # Save the model runs here
 export SAVEDIR='checkpoints/1/'
 mkdir -p ${SAVEDIR}
 
-:<<COMMENT
+# :<<COMMENT
 cp 'datasets/'${DATASET_NAME}'.tar.gz' ${SAVEDIR}
 cp -r ${BERT_WEIGHTS}/"${model}" ${SAVEDIR}
 
 # Untar your dataset
 tar -xvzf ${SAVEDIR}'/'${DATASET_NAME}'.tar.gz' -C ${SAVEDIR}
-COMMENT
+# COMMENT
 
 # Launch your job, tell it to save the model in $SLURM_TMPDIR and look for the dataset into $SLURM_TMPDIR
 export DATA_DIR=${SAVEDIR}
 export CACHE_MODEL_PATH=${SAVEDIR}/${model}
 
 # Remove the cached data files
-# rm -rf ${SAVEDIR}/${DATASET_NAME}/checkpoint-best-model
-# rm -rf ${SAVEDIR}/${DATASET_NAME}/cached_*
+rm -rf ${SAVEDIR}/${DATASET_NAME}/checkpoint-best-model
+rm -rf ${SAVEDIR}/${DATASET_NAME}/cached_*
 
 # Train and Evaluate on WSJ Split
 export TASK_NAME='conll2005wsj_srl'
