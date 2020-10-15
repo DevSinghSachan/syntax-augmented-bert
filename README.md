@@ -1,6 +1,8 @@
 Syntax-Augmented BERT Models
 ============================
 
+This repo contains authors' original implementation for the paper [Do Syntax Trees Help Pre-trained Transformers Extract Information?](https://arxiv.org/abs/2008.09084) In this work, we explore different methods for adding syntactic structures into existing pretrained Transformer models, and evaluate their effectiveness on SRL, NER and relation extraction tasks.
+
 ### Reproduce results on the CoNLL-2005 SRL task using `bert-base` weights
 
 ### Steps
