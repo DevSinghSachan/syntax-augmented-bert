@@ -45,12 +45,17 @@ Also, make sure that the variable path settings in lines 12-21 of the above scri
 ### Citation
 If you find this code useful, please consider citing our paper as:
 ```
-@misc{sachan2020syntax,
-      title={Do Syntax Trees Help Pre-trained Transformers Extract Information?}, 
-      author={Devendra Singh Sachan and Yuhao Zhang and Peng Qi and William Hamilton},
-      year={2020},
-      eprint={2008.09084},
-      archivePrefix={arXiv},
-      primaryClass={cs.CL}
-}
-```
+@inproceedings{sachan-etal-2021-syntax,
+    title = "Do Syntax Trees Help Pre-trained Transformers Extract Information?",
+    author = "Sachan, Devendra  and
+      Zhang, Yuhao  and
+      Qi, Peng  and
+      Hamilton, William L.",
+    booktitle = "Proceedings of the 16th Conference of the European Chapter of the Association for Computational Linguistics: Main Volume",
+    month = apr,
+    year = "2021",
+    address = "Online",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2021.eacl-main.228",
+    doi = "10.18653/v1/2021.eacl-main.228"
+}```
