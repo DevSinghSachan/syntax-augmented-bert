@@ -57,5 +57,5 @@ If you find this code useful, please consider citing our paper as:
     address = "Online",
     publisher = "Association for Computational Linguistics",
     url = "https://aclanthology.org/2021.eacl-main.228",
-    doi = "10.18653/v1/2021.eacl-main.228"
-}```
+    doi = "10.18653/v1/2021.eacl-main.228"}
+```
